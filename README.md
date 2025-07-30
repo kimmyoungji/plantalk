@@ -64,13 +64,13 @@
 ### 🔹 백엔드 구조 준비
 
 - [x]  Spring Boot 프로젝트 생성
-- [ ]  PostgreSQL 연동 (JPA 설정 포함)
-- [ ]  Thymeleaf 템플릿 엔진 적용
-- [ ]  REST API 기본 라우터 생성
-    - [ ]  `/login`
-    - [ ]  `/plant`
-    - [ ]  `/message`
-    - [ ]  `/state`
+- [x]  PostgreSQL 연동 (JPA 설정 포함)
+- [x]  Thymeleaf 템플릿 엔진 적용
+- [x]  REST API 기본 라우터 생성
+    - [x]  `/login`
+    - [x]  `/plant`
+    - [x]  `/message`
+    - [x]  `/state`
 
 ---
 
