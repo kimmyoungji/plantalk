@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlantTalk - 식물과의 대화</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/chat.css}">
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-0" th:text="${plant != null} ? ${plant.name} : '식물 선택'">식물 이름</h3>
+                            <small th:if="${plant != null}" th:text="${plant.species}">식물 종류</small>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="plantSelector" data-bs-toggle="dropdown" aria-expanded="false">
+                                식물 선택
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="plantSelector">
+                                <li th:each="p : ${plants}">
+                                    <a class="dropdown-item" th:href="@{'/chat/' + ${p.plantId}}" th:text="${p.name}">식물 이름</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="chat-container" id="messageArea">
+                            <!-- 메시지 목록 -->
+                            <div th:each="message : ${messages}" th:class="${message.senderType == 'plant'} ? 'message plant-message' : 'message user-message'">
+                                <div class="message-content" th:text="${message.content}">메시지 내용</div>
+                                <div class="message-time" th:text="${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')}">시간</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <form id="messageForm" th:action="@{'/api/message'}" method="post">
+                            <input type="hidden" id="plantId" name="plantId" th:value="${plant != null} ? ${plant.plantId} : ''">
+                            <input type="hidden" id="senderType" name="senderType" value="user">
+                            <div class="input-group">
+                                <input type="text" id="content" name="content" class="form-control" placeholder="메시지를 입력하세요..." required>
+                                <button class="btn btn-primary" type="submit">전송</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 식물 상태 정보 카드 -->
+                <div class="card mt-3" th:if="${plant != null && latestState != null}">
+                    <div class="card-header">
+                        <h5>식물 상태 정보</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">조도</label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                             th:style="'width: ' + ${latestState.lightLevel} + '%'" 
+                                             th:aria-valuenow="${latestState.lightLevel}" 
+                                             aria-valuemin="0" aria-valuemax="100" 
+                                             th:text="${latestState.lightLevel} + '%'">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">습도</label>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" role="progressbar" 
+                                             th:style="'width: ' + ${latestState.moisture} + '%'" 
+                                             th:aria-valuenow="${latestState.moisture}" 
+                                             aria-valuemin="0" aria-valuemax="100" 
+                                             th:text="${latestState.moisture} + '%'">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">온도</label>
+                                    <p th:text="${latestState.temperature} + '°C'">25°C</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">터치 감지</label>
+                                    <p th:text="${latestState.touched ? '감지됨' : '감지되지 않음'}">감지되지 않음</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted" th:text="'마지막 업데이트: ' + ${#temporals.format(latestState.createdAt, 'yyyy-MM-dd HH:mm')}">마지막 업데이트: 2023-01-01 12:00</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script th:src="@{/js/chat.js}"></script>
+</body>
+</html>
