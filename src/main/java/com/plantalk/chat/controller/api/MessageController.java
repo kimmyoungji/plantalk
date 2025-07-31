@@ -10,6 +10,8 @@ import com.plantalk.chat.service.PlantService;
 import com.plantalk.chat.service.PlantStateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.hibernate.engine.jdbc.env.internal.LobCreationLogging_.logger;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -115,8 +117,8 @@ public class MessageController {
         
         Page<Message> messagesPage = messageService.findMessagesByPlantId(
                 plantId, 
-                PageRequest.of(page, size, Sort.by("createdAt").descending())
-        );
+                PageRequest.of(page, size, Sort.by("createdAt").ascending())
+        )
         
         List<MessageDTO.Response> responses = messagesPage.getContent().stream()
                 .map(MessageDTO.Response::fromEntity)
