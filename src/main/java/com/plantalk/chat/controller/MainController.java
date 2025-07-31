@@ -56,7 +56,7 @@ public class MainController {
         model.addAttribute("messages", messages);
         
         // 해당 식물의 최신 상태 정보
-        Optional<PlantState> latestStateOpt = plantStateService.findLatestStateByPlantId(plantId);
+        Optional<PlantState> latestStateOpt = plantStateService.findLatestPlantStateByPlantId(plantId);
         latestStateOpt.ifPresent(state -> model.addAttribute("latestState", state));
         
         return "chat";
