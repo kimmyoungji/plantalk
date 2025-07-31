@@ -10,39 +10,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api/login")
 @RequiredArgsConstructor
 public class LoginController {
 
     private final UserService userService;
+    
+    // Spring Security가 로그인 처리를 담당하므로 기존 로그인 메서드 제거
 
     /**
-     * 로그인 (이메일로 사용자 조회)
-     */
-    @PostMapping
-    public ResponseEntity<ResponseDTO<UserDTO.Response>> login(@Valid @RequestBody UserDTO.LoginRequest request) {
-        Optional<User> userOpt = userService.findUserByEmail(request.getEmail());
-        
-        if (userOpt.isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(ResponseDTO.fail("사용자를 찾을 수 없습니다: " + request.getEmail()));
-        }
-        
-        User user = userOpt.get();
-        UserDTO.Response response = UserDTO.Response.fromEntity(user);
-        
-        return ResponseEntity.ok(ResponseDTO.success("로그인 성공", response));
-    }
-
-    /**
-     * 회원 가입
+     * 회원 가입 - 폼 데이터 처리
      */
     @PostMapping("/register")
-    public ResponseEntity<ResponseDTO<UserDTO.Response>> register(@Valid @RequestBody UserDTO.Request request) {
+    public ResponseEntity<ResponseDTO<UserDTO.Response>> register(@Valid @ModelAttribute UserDTO.Request request) {
         try {
             // 이메일 중복 체크
             if (userService.isEmailExists(request.getEmail())) {
@@ -61,6 +42,7 @@ public class LoginController {
             User user = new User();
             user.setUsername(request.getUsername());
             user.setEmail(request.getEmail());
+            user.setPassword(request.getPassword()); // 비밀번호는 UserService에서 인코딩됨
             
             User savedUser = userService.createUser(user);
             UserDTO.Response response = UserDTO.Response.fromEntity(savedUser);
