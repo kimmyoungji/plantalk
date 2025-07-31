@@ -7,23 +7,28 @@ import com.plantalk.chat.repository.MessageRepository;
 import com.plantalk.chat.repository.PlantRepository;
 import com.plantalk.chat.repository.PlantStateRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class MessageService {
 
     private final MessageRepository messageRepository;
     private final PlantRepository plantRepository;
     private final PlantStateRepository plantStateRepository;
+    private final ChatGPTService chatGPTService;
 
     /**
      * 모든 메시지 조회
@@ -186,7 +191,7 @@ public class MessageService {
     }
 
     /**
-     * 식물 상태 기반 자동 메시지 생성
+     * 식물 상태 기반 자동 메시지 생성 (ChatGPT API 사용)
      */
     @Transactional
     public Message generatePlantMessage(Long plantId, Long stateId) {
@@ -196,29 +201,90 @@ public class MessageService {
         PlantState state = plantStateRepository.findById(stateId)
                 .orElseThrow(() -> new IllegalArgumentException("식물 상태를 찾을 수 없습니다: " + stateId));
         
-        // 식물 상태 기반 메시지 생성 로직
-        String content = generateMessageContent(state);
-        
-        Message message = new Message();
-        message.setPlant(plant);
-        message.setState(state);
-        message.setSenderType("plant");
-        message.setContent(content);
-        
-        return messageRepository.save(message);
+        try {
+            // 최근 사용자 메시지 조회 (최대 5개)
+            List<Message> recentMessages = messageRepository.findTop10ByPlantPlantIdOrderByCreatedAtDesc(plantId);
+            
+            // 사용자 메시지 필터링 (가장 최근 사용자 메시지 1개)
+            Optional<Message> latestUserMessage = recentMessages.stream()
+                    .filter(msg -> "user".equals(msg.getSenderType()))
+                    .findFirst();
+            
+            // 대화 내역 구성 (최근 5개 메시지)
+            List<String> messageHistory = recentMessages.stream()
+                    .limit(5)
+                    .map(Message::getContent)
+                    .collect(Collectors.toList());
+            
+            // 사용자 메시지가 없으면 기본 메시지 사용
+            String userMessage = latestUserMessage
+                    .map(Message::getContent)
+                    .orElse("안녕하세요");
+            
+            // ChatGPT API를 통해 식물 응답 생성
+            String content = generateMessageContent(plant, state, userMessage, messageHistory);
+            
+            Message message = new Message();
+            message.setPlant(plant);
+            message.setState(state);
+            message.setSenderType("plant");
+            message.setContent(content);
+            
+            return messageRepository.save(message);
+        } catch (Exception e) {
+            log.error("식물 메시지 생성 중 오류 발생: {}", e.getMessage(), e);
+            
+            // 오류 발생 시 기본 메시지 생성
+            String fallbackContent = generateFallbackMessageContent(state);
+            
+            Message message = new Message();
+            message.setPlant(plant);
+            message.setState(state);
+            message.setSenderType("plant");
+            message.setContent(fallbackContent);
+            
+            return messageRepository.save(message);
+        }
     }
     
     /**
-     * 식물 상태 기반 메시지 내용 생성
+     * ChatGPT API를 사용하여 식물 상태 기반 메시지 내용 생성
      */
-    private String generateMessageContent(PlantState state) {
+    private String generateMessageContent(Plant plant, PlantState state, String userMessage, List<String> messageHistory) {
+        // 식물 정보 추출
+        String plantName = plant.getName();
+        String plantSpecies = plant.getSpecies();
+        
+        // 상태 정보 추출
+        int lightLevel = state.getLightLevel() != null ? state.getLightLevel() : 50;
+        int moisture = state.getMoisture() != null ? state.getMoisture() : 50;
+        double temperature = state.getTemperature() != null ? state.getTemperature() : 22.0;
+        boolean isTouched = state.getTouched() != null ? state.getTouched() : false;
+        
+        // ChatGPT API 호출
+        return chatGPTService.generatePlantResponse(
+                plantName,
+                plantSpecies,
+                lightLevel,
+                moisture,
+                temperature,
+                isTouched,
+                userMessage,
+                messageHistory
+        );
+    }
+    
+    /**
+     * ChatGPT API 호출 실패 시 사용할 폴백 메시지 생성
+     */
+    private String generateFallbackMessageContent(PlantState state) {
         StringBuilder content = new StringBuilder();
         
         // 빛 수준 기반 메시지
         if (state.getLightLevel() != null) {
-            if (state.getLightLevel() < 300) {
+            if (state.getLightLevel() < 30) {
                 content.append("빛이 부족해요. 좀 더 밝은 곳으로 옮겨주세요. ");
-            } else if (state.getLightLevel() > 800) {
+            } else if (state.getLightLevel() > 70) {
                 content.append("빛이 너무 강해요. 직사광선을 피해주세요. ");
             } else {
                 content.append("빛 수준이 적당해요. ");
@@ -240,7 +306,7 @@ public class MessageService {
         if (state.getMoisture() != null) {
             if (state.getMoisture() < 30) {
                 content.append("물이 필요해요! 물을 주세요. ");
-            } else if (state.getMoisture() > 80) {
+            } else if (state.getMoisture() > 70) {
                 content.append("물이 너무 많아요! 물 주기를 줄여주세요. ");
             } else {
                 content.append("수분이 적당해요. ");
