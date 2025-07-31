@@ -14,9 +14,11 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Controller
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class ChatController {
     private final MessageService messageService;
     private final PlantService plantService;
     private final PlantStateService plantStateService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * 채팅 메시지 전송 처리
@@ -58,34 +61,50 @@ public class ChatController {
             messageRequest.getStateId()
         );
         
-        // 사용자 메시지인 경우, 식물 응답 생성
+        // 사용자 메시지인 경우, 비동기로 식물 응답 생성
         if ("user".equals(messageRequest.getSenderType())) {
-            generatePlantResponse(plantId);
+            // 비동기로 식물 응답 생성 처리
+            CompletableFuture.runAsync(() -> {
+                generatePlantResponse(plantId);
+            });
         }
         
+        // 사용자 메시지 즉시 응답
         return MessageDTO.Response.fromEntity(savedMessage);
     }
     
     /**
-     * 식물 응답 메시지 자동 생성
+     * 식물 응답 메시지 자동 생성 및 WebSocket을 통한 전송
      */
     private void generatePlantResponse(Long plantId) {
-        // 최신 상태 정보 조회
-        Optional<PlantState> latestStateOpt = plantStateService.findLatestPlantStateByPlantId(plantId);
-        if (latestStateOpt.isEmpty()) {
-            log.error("식물 상태 정보를 찾을 수 없음: plantId={}", plantId);
-            return;
+        try {
+            // 최신 상태 정보 조회
+            Optional<PlantState> latestStateOpt = plantStateService.findLatestPlantStateByPlantId(plantId);
+            if (latestStateOpt.isEmpty()) {
+                log.error("식물 상태 정보를 찾을 수 없음: plantId={}", plantId);
+                return;
+            }
+            
+            // 식물 정보 조회
+            Optional<Plant> plantOpt = plantService.findPlantById(plantId);
+            if (plantOpt.isEmpty()) {
+                log.error("식물을 찾을 수 없음: plantId={}", plantId);
+                return;
+            }
+            
+            // 자동 메시지 생성 - ChatGPT API 호출
+            Message plantMessage = messageService.generatePlantMessage(plantOpt.get().getPlantId(), latestStateOpt.get().getStateId());
+            
+            // 생성된 식물 응답을 DTO로 변환
+            MessageDTO.Response response = MessageDTO.Response.fromEntity(plantMessage);
+            
+            // WebSocket을 통해 클라이언트에게 식물 응답 전송
+            log.info("식물 응답 전송: plantId={}, content={}", plantId, plantMessage.getContent());
+            messagingTemplate.convertAndSend("/topic/public/" + plantId, response);
+            
+        } catch (Exception e) {
+            log.error("식물 응답 생성 및 전송 중 오류 발생: {}", e.getMessage(), e);
         }
-        
-        // 식물 정보 조회
-        Optional<Plant> plantOpt = plantService.findPlantById(plantId);
-        if (plantOpt.isEmpty()) {
-            log.error("식물을 찾을 수 없음: plantId={}", plantId);
-            return;
-        }
-        
-        // 자동 메시지 생성
-        messageService.generatePlantMessage(plantOpt.get().getPlantId(), latestStateOpt.get().getStateId());
     }
     
     /**
