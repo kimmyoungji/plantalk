@@ -82,7 +82,7 @@
             <div class="col-md-4 mb-4" th:each="plant : ${plants}">
                 <div class="card plant-card">
                     <!-- 식물 이미지 (기본 이미지 사용) -->
-                    <img th:src="@{/img/plant-default.jpg}" class="plant-image" alt="식물 이미지" onerror="this.src='https://via.placeholder.com/300x200?text=식물+이미지'">
+                    <img th:src="@{/img/plant-default.png}" class="plant-image" alt="식물 이미지">
                     
                     <div class="card-body">
                         <h5 class="card-title" th:text="${plant.name}">식물 이름</h5>
