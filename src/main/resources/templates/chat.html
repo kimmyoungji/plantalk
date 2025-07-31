@@ -31,11 +31,6 @@
                     
                     <div class="card-body">
                         <div class="chat-container" id="messageArea">
-                            <!-- 메시지 목록 -->
-                            <div th:each="message : ${messages}" th:class="${message.senderType == 'plant'} ? 'message plant-message' : 'message user-message'">
-                                <div class="message-content" th:text="${message.content}">메시지 내용</div>
-                                <div class="message-time" th:text="${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')}">시간</div>
-                            </div>
                         </div>
                     </div>
                     
