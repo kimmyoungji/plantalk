@@ -47,13 +47,17 @@ public class MainController {
     public String plantList(Model model) {
         // 현재 인증된 사용자 정보 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName(); // 이메일을 사용자명으로 사용
+        String username = authentication.getName(); // 이메일을 사용자명으로 사용
         
         // 사용자 정보 조회
-        Optional<User> userOptional = userService.findUserByEmail(email);
+        Optional<User> userOptional = userService.findUserByUsername(username);
         
         if (userOptional.isPresent()) {
             User user = userOptional.get();
+
+            System.out.println("user.getUserId=========== >");
+            System.out.println(user.getUserId().toString());
+
             // 사용자의 식물 목록 조회
             List<Plant> plants = plantService.findPlantsByUserId(user.getUserId());
             
@@ -126,37 +130,26 @@ public class MainController {
      */
     @GetMapping("/plant-register")
     public String registerPlant(Model model) {
-        // 디버깅을 위한 로그 추가
-        System.out.println("===== 식물 등록 페이지 접근 =====");
         
         // 현재 인증된 사용자 정보 가져오기
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName(); // 이메일을 사용자명으로 사용
-        
-        System.out.println("Authentication Name: " + email);
-        System.out.println("Authentication Principal: " + authentication.getPrincipal());
-        System.out.println("Authentication Details: " + authentication.getDetails());
+        String username = authentication.getName(); // 이메일을 사용자명으로 사용
         
         // 사용자 정보 조회
-        Optional<User> userOptional = userService.findUserByEmail(email);
+        Optional<User> userOptional = userService.findUserByUsername(username);
         
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-            System.out.println("User found: " + user.getUsername() + ", ID: " + user.getUserId());
             model.addAttribute("userId", user.getUserId());
-        } else {
-            System.out.println("User not found for email: " + email);
-            // 사용자가 없는 경우 임시 값 설정 (테스트용)
-            model.addAttribute("userId", 1L);
         }
-        
+
         return "plant-register";
     }
     
     /**
      * 식물 수정 페이지
      */
-    @GetMapping("/plant/edit/{plantId}")
+    @GetMapping("/plant-edit/{plantId}")
     public String editPlant(@PathVariable Long plantId, Model model) {
         // 식물 정보 조회
         Optional<Plant> plantOpt = plantService.findPlantById(plantId);

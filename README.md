@@ -67,6 +67,7 @@ chatGPT의 응답을 마치 식물의 말인 것 처럼 사용자에게 응답�
             user_id SERIAL PRIMARY KEY,
             username VARCHAR(50) NOT NULL,
             email VARCHAR(100) UNIQUE NOT NULL,
+            password VARCHAR(100) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         
@@ -103,7 +104,6 @@ chatGPT의 응답을 마치 식물의 말인 것 처럼 사용자에게 응답�
         
 
 ### 🔹 백엔드 구조 준비
-
 - [x]  Spring Boot 프로젝트 생성
 - [x]  PostgreSQL 연동 (JPA 설정 포함)
 - [x]  Thymeleaf 템플릿 엔진 적용
@@ -139,14 +139,25 @@ chatGPT의 응답을 마치 식물의 말인 것 처럼 사용자에게 응답�
     - [x]  DELETE `/api/state/{stateId}`: 식물 상태 삭제
 
 ### 🔹 GPT 대화 프롬프트 처리
-
 - [x]  센서 상태 → 프롬프트 문장 생성 로직 구현
-- [ ]  감성 표현 톤 설계 (말투 유형: 귀엽게 / 공손하게 등)
-- [ ]  ChatGPT API 연결 및 응답 수신 테스트
+- [x]  감성 표현 톤 설계 (말투 유형: 귀엽게 / 공손하게 등)
+- [x]  ChatGPT API 연결 및 응답 수신 테스트
 
 ### 🔹 메시지 저장 및 출력
-
-- [ ]  GPT 응답을 `message` 테이블에 저장
+- [x]  GPT 응답을 `message` 테이블에 저장
 - [x]  대화 내용 조회 기능 구현 (`/plant/:id/messages`)
 - [x]  간단한 메시지 UI 출력 (Thymeleaf 기반)
 
+### 화면 구성 (와이어프레임 참고: C:\Users\티쓰리큐\Desktop\ArtOfLIFE\plantalk_spring\temp_imgs\plantalk_uxui.png )
+- [ ] 로그인 화면
+- [ ] 식물 목록 화면
+- [ ] 식물 등록 화면
+- [ ] 식물 수정 화면
+- [ ] 식물 채팅 화면
+
+
+
+
+## 로컬에서 Postgresqsl 실행 시키는 명령어
+cd C:\mytools\postgresql-16.9-3-windows-x64-binaries\bin
+pg_ctl.exe -D "../data" start
